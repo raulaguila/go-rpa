@@ -1,0 +1,56 @@
+version: '3.1'
+
+name: go-rpa
+
+volumes:
+
+  vrpa_mongo:
+    name: vrpa_mongo
+
+networks:
+
+  rpa_network:
+
+    name: rpa_network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 80.30.1.0/24
+          gateway: 80.30.1.1
+
+services:
+
+  mongo:
+
+    container_name: rpa_mongo
+    image: mongo:6.0.5
+    restart: always
+    env_file:
+      - ./.env
+    volumes:
+      - 'vrpa_mongo:/data/db'
+    ports:
+      - ${MONGO_EXT_PORT}:${MONGO_INT_PORT}
+    environment:
+      - TZ=America/Manaus
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASS}
+    networks:
+      rpa_network:
+        ipv4_address: ${MONGO_INT_HOST}
+
+  scrapper:
+
+    container_name: rpa
+    restart: always
+    build: .
+    env_file:
+      - ./.env
+    volumes:
+      - .:/app
+    environment:
+      - TZ=America/Manaus
+    depends_on:
+      - mongo
+    networks:
+      rpa_network:
